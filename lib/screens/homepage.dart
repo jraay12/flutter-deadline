@@ -1,6 +1,14 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/config.dart';
+import 'package:flutter_application_1/models/categorymodel.dart';
+import 'package:flutter_application_1/screens/login.dart';
 import 'package:flutter_application_1/widgets/custom_card.dart';
 import 'package:flutter_application_1/widgets/task_item.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -11,6 +19,183 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   bool isTaskListSelected = true;
+  List<Category> categories = []; // Use the model instead of dynamic list
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCategories();
+  }
+
+Color getRandomColor() {
+  List<Color> colors = [Colors.yellow, Colors.green, Colors.blue, Colors.purple, Colors.red];
+  return colors[Random().nextInt(colors.length)];
+}
+
+IconData getIconForCategory(String categoryName) {
+  Map<String, IconData> iconMap = {
+    "Works": Icons.work,
+    "Sport": Icons.sports_soccer,
+    "Habits": Icons.person,
+    "Study": Icons.book,
+  };
+
+  return iconMap[categoryName] ?? Icons.category; // Default icon
+}
+
+  Future<void> fetchCategories() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString(
+        'token',
+      ); // Replace 'jwt_token' with your actual key
+
+      if (token == null) {
+        print("JWT Token not found.");
+        return;
+      }
+
+      final String categoryApi =
+          "${AppConfig.apiUrl}/api/v1/get-categories"; // Use from config
+
+      final response = await http.get(
+        Uri.parse(categoryApi),
+        headers: {
+          'Authorization': 'Bearer $token', // Add JWT token to request headers
+          'Content-Type': 'application/json',
+        },
+      );
+    print(response.body);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          categories = data.map((json) => Category.fromJson(json)).toList();
+        });
+      } else {
+        print("Failed to load categories: ${response.statusCode}");
+      }
+    } catch (error) {
+      print("Error fetching categories: $error");
+    }
+  }
+
+  Future<void> _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // Remove the stored token
+    await prefs.remove("token");
+
+    // Navigate back to the login screen and clear history
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+      (route) => false, // This removes all previous routes
+    );
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Logged out successfully")));
+  }
+
+  void _showAddTaskModal(BuildContext context) {
+    TextEditingController titleController = TextEditingController();
+    TextEditingController descriptionController = TextEditingController();
+    TextEditingController dueDateController = TextEditingController();
+    TextEditingController timeController = TextEditingController();
+
+    List<int> selectedCategories = [];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Add Task"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(labelText: "Title"),
+                ),
+                TextField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(labelText: "Description"),
+                ),
+                TextField(
+                  controller: dueDateController,
+                  decoration: InputDecoration(
+                    labelText: "Due Date",
+                    hintText: "YYYY-MM-DD",
+                  ),
+                ),
+                TextField(
+                  controller: timeController,
+                  decoration: InputDecoration(
+                    labelText: "Time",
+                    hintText: "HH:MM:SS",
+                  ),
+                ),
+                SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  children: [
+                    ChoiceChip(
+                      label: Text("Work"),
+                      selected: selectedCategories.contains(1),
+                      onSelected: (selected) {
+                        setState(() {
+                          selected
+                              ? selectedCategories.add(1)
+                              : selectedCategories.remove(1);
+                        });
+                      },
+                    ),
+                    ChoiceChip(
+                      label: Text("Sport"),
+                      selected: selectedCategories.contains(5),
+                      onSelected: (selected) {
+                        setState(() {
+                          selected
+                              ? selectedCategories.add(5)
+                              : selectedCategories.remove(5);
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Process task submission
+                Map<String, dynamic> newTask = {
+                  "user_id": 1,
+                  "title": titleController.text,
+                  "description": descriptionController.text,
+                  "dueDate": dueDateController.text,
+                  "time": timeController.text,
+                  "category_ids": selectedCategories,
+                };
+
+                print(newTask); // Replace this with API call
+                Navigator.pop(context);
+              },
+              child: Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +209,9 @@ class _HomepageState extends State<Homepage> {
           ),
           actions: <Widget>[
             IconButton(
-              onPressed: () {},
+              onPressed: () async {
+                await _logout(); // Call the logout function
+              },
               icon: const Icon(Icons.person_off_rounded),
             ),
           ],
@@ -77,35 +264,20 @@ class _HomepageState extends State<Homepage> {
               ),
             ),
             const SizedBox(height: 20), // Space before content
-            SingleChildScrollView(
+           SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: [
-                  TaskCategoryCard(
-                    backgroundColor: Colors.yellow,
-                    icon: Icons.work,
-                    title: "Works",
-                    taskCount: "03",
-                  ),
-                  TaskCategoryCard(
-                    backgroundColor: Colors.green,
-                    icon: Icons.favorite,
-                    title: "Sport",
-                    taskCount: "10",
-                  ),
-                  TaskCategoryCard(
-                    backgroundColor: Colors.blue,
-                    icon: Icons.person,
-                    title: "Habits",
-                    taskCount: "4",
-                  ),
-                  TaskCategoryCard(
-                    backgroundColor: Colors.purple,
-                    icon: Icons.book,
-                    title: "Study",
-                    taskCount: "7",
-                  ),
-                ],
+                children:
+                    categories.map((category) {
+                      return TaskCategoryCard(
+                        backgroundColor:
+                            getRandomColor(), // Function to assign a color
+                        icon: getIconForCategory(
+                          category.category_name,
+                        ), // Function to assign an icon
+                        title: category.category_name,
+                      );
+                    }).toList(),
               ),
             ),
             const SizedBox(height: 40),
@@ -145,7 +317,9 @@ class _HomepageState extends State<Homepage> {
                             borderRadius: BorderRadius.circular(100),
                           ),
                           child: TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              _showAddTaskModal(context);
+                            },
                             child: Text(
                               "Add Task",
                               style: TextStyle(color: Colors.white),
@@ -184,6 +358,29 @@ class _HomepageState extends State<Homepage> {
     );
   }
 }
+
+Color getRandomColor() {
+  List<Color> colors = [
+    Colors.yellow,
+    Colors.green,
+    Colors.blue,
+    Colors.purple,
+    Colors.red,
+  ];
+  return colors[Random().nextInt(colors.length)];
+}
+
+IconData getIconForCategory(String categoryName) {
+  Map<String, IconData> iconMap = {
+    "Works": Icons.work,
+    "Sport": Icons.sports_soccer,
+    "Habits": Icons.person,
+    "Study": Icons.book,
+  };
+
+  return iconMap[categoryName] ?? Icons.category; // Default icon
+}
+
 
 // Toggle Button Component
 class CustomToggle extends StatefulWidget {

@@ -4,14 +4,14 @@ class TaskCategoryCard extends StatelessWidget {
   final Color backgroundColor;
   final IconData icon;
   final String title;
-  final String taskCount;
+  final String? taskCount;
 
   const TaskCategoryCard({
     Key? key,
     required this.backgroundColor,
     required this.icon,
     required this.title,
-    required this.taskCount,
+    this.taskCount,
   }) : super(key: key);
 
   @override

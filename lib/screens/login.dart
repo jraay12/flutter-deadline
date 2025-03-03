@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/config.dart';
 import 'package:flutter_application_1/screens/homepage.dart';
+import 'package:flutter_application_1/utils/decoder.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -44,6 +45,7 @@ class _LoginPageState extends State<LoginPage> {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString("token", responseData["token"]);
 
+        getUserId();
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Login Successful")));
