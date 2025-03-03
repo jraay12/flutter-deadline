@@ -4,6 +4,7 @@ import 'package:flutter_application_1/screens/homepage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:flutter_application_1/screens/signup.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -166,7 +167,12 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                       Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SignUpScreen()),
+                      );
+                    },
                     child: Text(
                       "Don't have an account? Sign up",
                       style: TextStyle(color: Colors.black),
