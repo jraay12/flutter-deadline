@@ -42,93 +42,108 @@ void showAddTaskModal(
   showDialog(
     context: context,
     builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text("Add Task"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(labelText: "Title"),
+      return StatefulBuilder(
+        builder: (context, setState) {
+          // Ensures UI updates when selecting categories
+          return AlertDialog(
+            title: Text("Add Task"),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: InputDecoration(labelText: "Title"),
+                  ),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: InputDecoration(labelText: "Description"),
+                  ),
+                  TextField(
+                    controller: dueDateController,
+                    decoration: InputDecoration(
+                      labelText: "Due Date",
+                      hintText: "Select a date",
+                    ),
+                    readOnly: true,
+                    onTap: () => selectDate(context),
+                  ),
+                  TextField(
+                    controller: timeController,
+                    decoration: InputDecoration(
+                      labelText: "Time",
+                      hintText: "Select a time",
+                    ),
+                    readOnly: true,
+                    onTap: () => selectTime(context),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Select Categories:",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Wrap(
+                    spacing: 10,
+                    children:
+                        categories.map((category) {
+                          bool isSelected = selectedCategories.contains(
+                            category.id,
+                          );
+                          return ChoiceChip(
+                            label: Text(category.category_name),
+                            selected: isSelected,
+                            selectedColor: Colors.blue,
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  selectedCategories.add(category.id);
+                                } else {
+                                  selectedCategories.remove(category.id);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                  ),
+                ],
               ),
-              TextField(
-                controller: descriptionController,
-                decoration: InputDecoration(labelText: "Description"),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Cancel"),
               ),
-              TextField(
-                controller: dueDateController,
-                decoration: InputDecoration(
-                  labelText: "Due Date",
-                  hintText: "Select a date",
-                ),
-                readOnly: true,
-                onTap: () => selectDate(context),
-              ),
-              TextField(
-                controller: timeController,
-                decoration: InputDecoration(
-                  labelText: "Time",
-                  hintText: "Select a time",
-                ),
-                readOnly: true,
-                onTap: () => selectTime(context),
-              ),
-              SizedBox(height: 10),
-              Text(
-                "Select Categories:",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Wrap(
-                spacing: 10,
-                children:
-                    categories.map((category) {
-                      return ChoiceChip(
-                        label: Text(category.category_name),
-                        selected: selectedCategories.contains(category.id),
-                        onSelected: (selected) {
-                          if (selected) {
-                            selectedCategories.add(category.id);
-                          } else {
-                            selectedCategories.remove(category.id);
-                          }
-                        },
-                      );
-                    }).toList(),
+              ElevatedButton(
+                onPressed: () async {
+                  print(
+                    "Selected Categories: $selectedCategories",
+                  ); // Debugging
+
+                  bool success = await ApiService.createTask(
+                    title: titleController.text,
+                    description: descriptionController.text,
+                    dueDate: dueDateController.text,
+                    time: timeController.text,
+                    categoryIds: selectedCategories,
+                  );
+
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Task added successfully!")),
+                    );
+                    refreshTasks();
+                    Navigator.pop(context); // Close modal
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Failed to add task")),
+                    );
+                  }
+                },
+                child: Text("Save"),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              bool success = await ApiService.createTask(
-                title: titleController.text,
-                description: descriptionController.text,
-                dueDate: dueDateController.text, // "YYYY-MM-DD"
-                time: timeController.text, // "HH:MM:SS"
-                categoryIds: selectedCategories,
-              );
-
-              if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Task added successfully!")),
-                );
-                refreshTasks();
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text("Failed to add task")));
-              }
-            },
-            child: Text("Save"),
-          ),
-        ],
+          );
+        },
       );
     },
   );
