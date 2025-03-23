@@ -143,7 +143,6 @@ class _HomepageState extends State<Homepage> {
   }
 
   Widget _buildTaskList() {
-    // Filter tasks based on selection
     List<TaskModel> displayedTasks =
         isTaskListSelected
             ? tasks.where((task) => task.status == "pending").toList()
@@ -185,11 +184,14 @@ class _HomepageState extends State<Homepage> {
                           itemCount: displayedTasks.length,
                           itemBuilder: (context, index) {
                             final task = displayedTasks[index];
+
                             return TaskItem(
-                              id: task.id, // Pass task ID
+                              id: task.id,
                               title: task.title,
                               status: task.status,
-                              onUpdate: loadTasks, // Refresh list after update
+                              dueDate: task.dueDate, // Display due date
+                              time: task.time, // Display time
+                              onUpdate: loadTasks,
                             );
                           },
                         ),
@@ -200,6 +202,7 @@ class _HomepageState extends State<Homepage> {
       ),
     );
   }
+
 
 
 
