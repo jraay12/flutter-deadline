@@ -60,7 +60,7 @@ class _HomepageState extends State<Homepage> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          leading: IconButton(onPressed: () {}, icon: Icon(Icons.menu)),
+          // leading: IconButton(onPressed: () {}, icon: Icon(Icons.menu)),
           title: Text(
             "Deadline Tracker",
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -68,7 +68,7 @@ class _HomepageState extends State<Homepage> {
           actions: [
             IconButton(
               onPressed: _logout,
-              icon: Icon(Icons.person_off_rounded),
+              icon: Icon(Icons.logout),
             ),
           ],
         ),
