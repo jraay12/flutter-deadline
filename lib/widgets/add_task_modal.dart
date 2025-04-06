@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/service/alarm_service.dart';
 import 'package:flutter_application_1/service/api_service.dart';
 import '../models/categorymodel.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'dart:isolate';
 import 'dart:ui';
 
@@ -31,30 +30,6 @@ Future<void> showAddTaskModal(
     debugPrint("Alarm scheduled successfully for $title at $alarmTime");
   } else {
     debugPrint("Failed to schedule alarm");
-  }
-}
-
-// Then in your save button:
-if (enableAlarm) {
-  try {
-    // Parse date and time to create DateTime for alarm
-    List<String> dateParts = dueDateController.text.split('-');
-    List<String> timeParts = timeController.text.split(':');
-    
-    DateTime alarmTime = DateTime(
-      int.parse(dateParts[0]),
-      int.parse(dateParts[1]),
-      int.parse(dateParts[2]),
-      int.parse(timeParts[0]),
-      int.parse(timeParts[1]),
-    );
-    
-    // Get task ID (you'll need to modify your API service to return the created task ID)
-    int taskId = 1; // Replace with actual task ID from your API response
-    
-    await scheduleTaskAlarm(taskId, titleController.text, alarmTime);
-  } catch (e) {
-    print("Error scheduling alarm: $e");
   }
 }
  
