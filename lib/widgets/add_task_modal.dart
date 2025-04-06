@@ -1,19 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/service/alarm_service.dart';
 import 'package:flutter_application_1/service/api_service.dart';
 import '../models/categorymodel.dart';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'dart:isolate';
+import 'dart:ui';
 
-void showAddTaskModal(
+// Add this at the top of your file for notification and alarm handling
+void callbackDispatcher() {
+  final SendPort? send = IsolateNameServer.lookupPortByName('alarm_isolate');
+  send?.send(null);
+}
+
+Future<void> showAddTaskModal(
   BuildContext context,
   List<Category> categories,
   VoidCallback refreshTasks,
-) {
+) async {
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
   TextEditingController dueDateController = TextEditingController();
   TextEditingController timeController = TextEditingController();
+  bool enableAlarm = false; // Track if alarm is enabled
 
   List<int> selectedCategories = [];
 
+ Future<void> scheduleTaskAlarm(int taskId, String title, DateTime alarmTime) async {
+  bool success = await AlarmService.scheduleAlarm(taskId, title, alarmTime);
+  if (success) {
+    debugPrint("Alarm scheduled successfully for $title at $alarmTime");
+  } else {
+    debugPrint("Failed to schedule alarm");
+  }
+}
+
+// Then in your save button:
+if (enableAlarm) {
+  try {
+    // Parse date and time to create DateTime for alarm
+    List<String> dateParts = dueDateController.text.split('-');
+    List<String> timeParts = timeController.text.split(':');
+    
+    DateTime alarmTime = DateTime(
+      int.parse(dateParts[0]),
+      int.parse(dateParts[1]),
+      int.parse(dateParts[2]),
+      int.parse(timeParts[0]),
+      int.parse(timeParts[1]),
+    );
+    
+    // Get task ID (you'll need to modify your API service to return the created task ID)
+    int taskId = 1; // Replace with actual task ID from your API response
+    
+    await scheduleTaskAlarm(taskId, titleController.text, alarmTime);
+  } catch (e) {
+    print("Error scheduling alarm: $e");
+  }
+}
+ 
   Future<void> selectDate(BuildContext context) async {
     DateTime? picked = await showDatePicker(
       context: context,
@@ -77,6 +121,18 @@ void showAddTaskModal(
                     readOnly: true,
                     onTap: () => selectTime(context),
                   ),
+
+                  // Add alarm toggle switch
+                  SwitchListTile(
+                    title: Text("Set Reminder"),
+                    value: enableAlarm,
+                    onChanged: (value) {
+                      setState(() {
+                        enableAlarm = value;
+                      });
+                    },
+                  ),
+
                   SizedBox(height: 10),
                   Text(
                     "Select Categories:",
@@ -115,9 +171,17 @@ void showAddTaskModal(
               ),
               ElevatedButton(
                 onPressed: () async {
-                  print(
-                    "Selected Categories: $selectedCategories",
-                  ); // Debugging
+                  // Validate inputs
+                  if (titleController.text.isEmpty ||
+                      dueDateController.text.isEmpty ||
+                      timeController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Please fill in all required fields"),
+                      ),
+                    );
+                    return;
+                  }
 
                   bool success = await ApiService.createTask(
                     title: titleController.text,
@@ -128,6 +192,37 @@ void showAddTaskModal(
                   );
 
                   if (success) {
+                    // If alarm is enabled, schedule it
+                    if (enableAlarm) {
+                      try {
+                        // Parse date and time to create DateTime for alarm
+                        List<String> dateParts = dueDateController.text.split(
+                          '-',
+                        );
+                        List<String> timeParts = timeController.text.split(':');
+
+                        DateTime alarmTime = DateTime(
+                          int.parse(dateParts[0]),
+                          int.parse(dateParts[1]),
+                          int.parse(dateParts[2]),
+                          int.parse(timeParts[0]),
+                          int.parse(timeParts[1]),
+                        );
+
+                        // Get task ID (you'll need to modify your API service to return the created task ID)
+                        int taskId =
+                            1; // Replace with actual task ID from your API response
+
+                        await scheduleTaskAlarm(
+                          taskId,
+                          titleController.text,
+                          alarmTime,
+                        );
+                      } catch (e) {
+                        print("Error scheduling alarm: $e");
+                      }
+                    }
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text("Task added successfully!")),
                     );

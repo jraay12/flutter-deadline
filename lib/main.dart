@@ -1,6 +1,25 @@
+import 'dart:isolate';
+import 'dart:ui';
+import 'package:flutter_application_1/service/alarm_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/login.dart';
-void main() {
+void main() async{
+
+   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize alarm manager
+  await AlarmService.initialize();
+
+  // Setup isolate communication for alarms
+  final receivePort = ReceivePort();
+  IsolateNameServer.registerPortWithName(receivePort.sendPort, 'alarm_isolate');
+
+  receivePort.listen((dynamic data) {
+    debugPrint("Received alarm signal: $data");
+    // Show notification here
+  });
+
+
   runApp(const MyApp());
 }
 
