@@ -1,39 +1,49 @@
-// main.dart
 import 'dart:isolate';
 import 'dart:ui';
-import 'package:flutter_application_1/service/alarm_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/login.dart';
+import 'package:flutter_application_1/screens/homepage.dart'; // <-- replace with your actual home screen
+import 'package:flutter_application_1/service/alarm_service.dart';
 import 'package:flutter_application_1/service/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize alarm manager and notification service
   await AlarmService.initialize();
 
-  // Setup isolate communication for alarms
   final receivePort = ReceivePort();
   IsolateNameServer.registerPortWithName(receivePort.sendPort, 'alarm_isolate');
 
   receivePort.listen((dynamic data) {
     debugPrint("Received alarm signal: $data");
-
-    // Check if data is a Map and contains taskId
     if (data is Map && data.containsKey('taskId')) {
       int taskId = data['taskId'];
-      // Show notification for this task
       AlarmService.showTaskNotification(taskId);
     }
   });
 
-  runApp(const MyApp());
+  // Determine initial screen
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString("token");
+
+  Widget initialScreen;
+
+  if (token != null && !JwtDecoder.isExpired(token)) {
+    initialScreen =
+        const Homepage(); // <-- Replace with your actual home screen
+  } else {
+    initialScreen =  LoginPage();
+  }
+
+  runApp(MyApp(initialScreen: initialScreen));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Widget initialScreen;
+  const MyApp({super.key, required this.initialScreen});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -42,7 +52,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: LoginPage(),
+      home: initialScreen,
     );
   }
 }
