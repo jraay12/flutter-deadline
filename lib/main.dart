@@ -1,13 +1,15 @@
+// main.dart
 import 'dart:isolate';
 import 'dart:ui';
 import 'package:flutter_application_1/service/alarm_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/login.dart';
-void main() async{
+import 'package:flutter_application_1/service/notification_service.dart';
 
-   WidgetsFlutterBinding.ensureInitialized();
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize alarm manager
+  // Initialize alarm manager and notification service
   await AlarmService.initialize();
 
   // Setup isolate communication for alarms
@@ -16,9 +18,14 @@ void main() async{
 
   receivePort.listen((dynamic data) {
     debugPrint("Received alarm signal: $data");
-    // Show notification here
-  });
 
+    // Check if data is a Map and contains taskId
+    if (data is Map && data.containsKey('taskId')) {
+      int taskId = data['taskId'];
+      // Show notification for this task
+      AlarmService.showTaskNotification(taskId);
+    }
+  });
 
   runApp(const MyApp());
 }
@@ -35,9 +42,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home:  LoginPage(),
+      home: LoginPage(),
     );
   }
 }
-
- 
